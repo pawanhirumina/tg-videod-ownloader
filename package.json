@@ -1,0 +1,33 @@
+{
+  "name": "telegram-bot",
+  "version": "1.0.0",
+  "description": "A simple Telegram bot built with Node.js",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js",
+    "dev": "nodemon bot.js"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "nodejs"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@sasmeee/igdl": "^0.0.1-security",
+    "axios": "^1.13.4",
+    "body-parser": "^2.2.2",
+    "dotenv": "^16.6.1",
+    "express": "^5.2.1",
+    "instagram-url-direct": "^2.0.7",
+    "node-fetch": "^2.7.0",
+    "node-telegram-bot-api": "^0.66.0",
+    "nodemailer": "^7.0.13",
+    "twilio": "^5.12.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  },
+  "type": "commonjs"
+}
