@@ -1,6 +1,16 @@
 require("dotenv").config();
 const TelegramBot = require("node-telegram-bot-api");
+const youtubedl = require("youtube-dl-exec");
 const { instagramGetUrl } = require("instagram-url-direct");
+const TikTokScraper = require('tiktok-scraper'); // npm install tiktok-scraper
+const TikTokScraper = require('tiktok-scraper'); // npm install tiktok-scraper
+
+
+
+
+
+
+
 
 const token = process.env.BOT_TOKEN;
 
@@ -10,13 +20,12 @@ if (!token) {
 }
 
 const bot = new TelegramBot(token, { polling: true });
-
-console.log("🤖 Instagram Downloader Bot started...");
+console.log("🤖 Multi-platform Downloader Bot started...");
 
 bot.onText(/\/start/, (msg) => {
   bot.sendMessage(
     msg.chat.id,
-    "👋 Send me an Instagram Reel or Post link and I’ll download the video for you 🎥"
+    "👋 Send me an Instagram, YouTube, TikTok, or Facebook video link and I’ll download it for you 🎥"
   );
 });
 
@@ -26,30 +35,46 @@ bot.on("message", async (msg) => {
 
   if (!text || text.startsWith("/")) return;
 
-  if (!text.includes("instagram.com")) {
-    bot.sendMessage(chatId, "❌ Please send a valid Instagram link");
-    return;
-  }
+  await bot.sendMessage(chatId, "⏳ Processing your link...");
 
   try {
-    await bot.sendMessage(chatId, "⏳ Downloading video...");
+    let videoUrl;
 
-    const result = await instagramGetUrl(text);
+    // Instagram
+    if (text.includes("instagram.com")) {
+      const result = await instagramGetUrl(text);
+      if (Array.isArray(result.media_details) && result.media_details.length > 0) {
+        const videoObj = result.media_details.find(m => m.type === "video") || result.media_details[0];
+        videoUrl = videoObj.url || (videoObj.urls && videoObj.urls[0]);
+      } else if (Array.isArray(result.url_list) && result.url_list.length > 0) {
+        videoUrl = result.url_list[0];
+      }
+    }
 
-    console.log("DEBUG result:", result); // optional, keep for debugging
+    // TikTok
+ // inside your message handler
+else if (text.includes("tiktok.com")) {
+  try {
+    const tiktokInfo = await TikTokScraper.getVideoMeta(text, { noWaterMark: true });
+    videoUrl = tiktokInfo.collector[0].videoUrl; // first video in case of multiple
+  } catch (err) {
+    console.error("TikTok download error:", err);
+    bot.sendMessage(chatId, "❌ Failed to download TikTok video");
+  }
+}
 
-    if (!result) throw new Error("No media found");
+    // YouTube or Facebook
+    else if (text.includes("youtube.com") || text.includes("youtu.be") || text.includes("facebook.com")) {
+      const info = await youtubedl(text, {
+        dumpSingleJson: true,
+        noWarnings: true,
+        noCheckCertificate: true,
+        preferFreeFormats: true,
+        youtubeSkipDashManifest: true
+      });
 
-    // Extract video URL from media_details
-    let videoUrl = null;
-
-    if (Array.isArray(result.media_details) && result.media_details.length > 0) {
-      const videoObj = result.media_details.find(m => m.type === "video") || result.media_details[0];
-      videoUrl = videoObj.url || (videoObj.urls && videoObj.urls[0]);
-    } 
-    // fallback to url_list if needed
-    else if (Array.isArray(result.url_list) && result.url_list.length > 0) {
-      videoUrl = result.url_list[0];
+      // pick the best video url
+      videoUrl = info.url || (info.formats && info.formats[0].url);
     }
 
     if (!videoUrl) throw new Error("No video URL found");
@@ -63,7 +88,7 @@ bot.on("message", async (msg) => {
     console.error("Error downloading:", error);
     bot.sendMessage(
       chatId,
-      "❌ Failed to download video.\nPossible reasons:\n- Private account\n- Invalid link\n- Instagram blocked the request"
+      "❌ Failed to download video.\nPossible reasons:\n- Private/blocked account\n- Invalid link\n- Video too large"
     );
   }
 });
